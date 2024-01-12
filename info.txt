@@ -1,0 +1,114 @@
+const express=require('express');
+const mysql=require('mysql');
+const app=express();
+var bodyParser=require('body-parser');
+urlencodedParser=bodyParser.urlencoded({extended:true});
+const port=3000;
+
+const connection=mysql.createConnection({
+    host:'127.0.0.1',
+    user:'root',
+    password:"",
+    database:"eventp"
+})
+
+connection.connect((err)=>{
+    if(err)
+    {
+        console.log('error connecting database');
+        return;
+    }
+    console.log('connected to database');
+
+});
+
+app.get('/latestEvent',function(req,res){
+    const sqlQuery="SELECT events.*,user.username FROM events JOIN user ON events.userid = user.userid";
+    
+    connection.query(sqlQuery,(error,results)=>{
+        if(error)
+        {
+            console.error('Error executing SQL query:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
+        }
+        res.send(results);
+    })
+})
+
+app.get('/newEvent',function(req,res){
+    var rr="<html>";
+    rr=rr+"<body>";
+    rr=rr+"<form method='post' action='insert'>";
+    rr=rr+"Eventid"+"<input type=number name='one' value''>";
+    rr=rr+"Userid"+"<input type=number name='two' value''>";
+    rr=rr+"Title"+"<input type=text name='three' value''>";
+    rr=rr+"Content"+"<input type=text name='four' value''>";
+    rr=rr+"Date"+"<input type=text name='five' value''>";
+    rr=rr+"Location"+"<input type=text name='six' value''>";
+    rr=rr+"<input type='submit' value='send'>";
+    rr=rr+"</form>"
+    rr=rr+"</body>";
+    rr=rr+"</html>";
+    res.send(rr);
+    
+})
+
+app.post('/insert',urlencodedParser,(req,res)=>{
+    eventid=req.body.one;
+    userid=req.body.two;
+    title=req.body.three;
+    content=req.body.four;
+    date=req.body.five;
+    location=req.body.six;
+
+    const sqlQuery="INSERT into events(eventid,userid,title,content,date,location) VALUES ("+eventid+","+userid+",'"+title+"','"+content+"','"+date+"','"+location+"')"
+
+    connection.connect(function(err){
+        if(err){
+            console.log('connected')
+        }
+    })
+    
+    connection.query(sqlQuery,function(error,results){
+        if(error){
+            console.log('rec inserted');
+        }
+
+    });
+    res.write("record inserted");
+    res.end();
+})
+
+app.get('/eventByLocation',(req,res)=>{
+    const location='bvb';
+    const sqlQuery="SELECT events.*,user.username FROM events JOIN user ON events.userid=user.userid WHERE events.location='+location+'";
+
+    connection.query(sqlQuery,function(error,results){
+        if(error){
+            console.error('Error executing SQL query:', error);
+            return;
+        }
+        res.send(results)
+    })
+})
+
+    app.get('/deleteEvent/:eventId',function(req,res){
+        const eventid=req.params.eventId;
+        const sqlQuery="DELETE from events WHERE eventid=?"
+        connection.query(sqlQuery,[eventid],function(error,results){
+            if(error)
+            {
+                console.error("error in sql query :",error);
+                return;
+            }
+            if(results.affectedRows>0){
+            res.write("event deleted successfully");
+            res.end();}
+            else
+            res.status(404).json({ error: 'Event not found' });
+        });
+    })
+app.listen(port,()=>{
+    console.log(Server is listening on port ${port});
+});
